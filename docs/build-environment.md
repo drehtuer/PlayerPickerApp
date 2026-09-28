@@ -669,6 +669,7 @@ serve it from that path rather than opening the files directly.
 | `failed to connect to '<ip>:5555'` | Android 11+ picks a random connect port. `connect-device.sh discover <ip>`. |
 | Device stuck `offline` after pairing | Connected to the pairing port. Disconnect it and use the Wireless debugging port. |
 | `adb mdns services` lists nothing | Expected under bridge networking; mDNS does not cross the NAT. Use `discover`. |
+| CI: `Warning: Failed to find package 'tools'`, then `sdkmanager` exits 1 | `android-actions/setup-android` older than v4.0.2. Google removed the obsolete `tools` package from the SDK repository; the action still asked for it. Merge Dependabot's bump. |
 
 ## The design export
 
@@ -748,6 +749,16 @@ SHA cannot move. Dependabot updates these in place - it rewrites both the SHA
 and the comment - so pinning costs nothing in maintenance. `actions/*` and
 `github/*` are left on tags: they are GitHub's own, published from the same
 platform that runs them.
+
+Pinning does have one cost, and it was paid on 2026-09-19: **a pin holds a
+broken version just as firmly as a good one.** Google removed the obsolete
+`tools` package from the SDK repository, `setup-android` v4.0.1 still asked
+`sdkmanager` for it, and every workflow that sets up the SDK began failing at
+that step. Upstream fixed it in v4.0.2 within two days, and Dependabot raised
+the bump - but the pin meant the repository stayed broken until that pull
+request was merged, where `@v4` would have healed itself. The lesson is not to
+stop pinning; it is that **a red Dependabot PR against a pinned action is the
+fix, not noise**, and leaving it open leaves CI broken.
 
 **Write permissions are granted per job, not per workflow.** `docs.yml` is the
 only workflow that needs any: it is `contents: read` at the top, and `pages:
