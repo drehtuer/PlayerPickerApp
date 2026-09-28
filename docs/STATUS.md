@@ -28,6 +28,74 @@ documentation site is live. What is left is a fourth draw mode and polish.
 
 ---
 
+## 2026-09-28 — Code scanning was red for nine days, and the fix was already open
+
+Every workflow that sets up the Android SDK had been failing since
+2026-09-19. The fix was sitting in an unmerged Dependabot pull request the
+whole time.
+
+### What broke
+
+`android-actions/setup-android` runs `sdkmanager tools` as part of its setup.
+Google removed `tools` - obsoleted years ago - from the SDK repository, so the
+call started failing:
+
+```
+Warning: Failed to find package 'tools'
+Error: The process '.../sdkmanager' failed with exit code 1
+```
+
+Nothing in this repository changed. The step that broke is third-party setup,
+not anything the build does, which is why the failure looked inexplicable from
+the commit history.
+
+### Why only *some* checks went red
+
+This is the part worth remembering. `pr.yml` **does not use
+`setup-android`** - it relies on the SDK baked into the runner image - so
+Build, Unit tests and Static analysis all stayed green. Only Code scanning
+failed, and code scanning is deliberately not a required check, so pull
+requests still looked mergeable. Two Dependabot PRs were merged into `main`
+during the nine days with a red CodeQL run on them.
+
+`docs.yml` and `release.yml` do use the action and were **also** broken -
+silently, because both are tag-only and neither had run since 2026-09-12. Had
+this not been caught, the next `v*` tag would have failed at the release step:
+the worst place to discover it, since a release is the one thing that cannot be
+quietly retried.
+
+### The fix, and the awkward part
+
+Upstream fixed it in v4.0.2 on 2026-09-17 - release note: *"Fix for removed
+tools package."* Dependabot raised the bump to v4.0.4 as PR #56 on 2026-09-21,
+CI went green on it, and it then sat open for a week while the weekly scheduled
+scan kept failing.
+
+So the repair here is the bump Dependabot already wrote, applied to all three
+workflows, plus the documentation that pull request could not add. Pinning
+actions to a commit SHA is still right - but it means an upstream fix does not
+arrive until someone merges it, and a red Dependabot PR against a pinned action
+is the fix rather than noise. That is now written down in
+[`build-environment.md`](build-environment.md#workflow-hardening).
+
+### What was verified, and what was not
+
+The Gradle gates were **not** run for this change, and could not be: the work
+happened on the WSL host rather than in the devcontainer, which has no Android
+SDK and only a JRE, so `assembleDebug` fails at SDK setup before it compiles
+anything. They would also prove nothing here - the change touches workflow YAML
+and Markdown, and no Kotlin, Gradle configuration or resource. What was checked
+locally is that all four workflow files still parse as YAML and that the new SHA
+is the commit `android-actions/setup-android` v4.0.4 actually points at.
+
+The verification that counts is CI on the pull request: Build, Unit tests and
+Static analysis run the suite, and the CodeQL run exercises the fixed
+`codeql.yml` end to end. `docs.yml` and `release.yml` carry the identical
+one-line change but are tag-only, so they are fixed by inspection rather than by
+a run - noted on [`TODO.md`](TODO.md) so the next tag gets watched.
+
+---
+
 ## 2026-09-12 — The flaky test, and what was actually wrong
 
 The intermittent hang recorded at 0.1.3 is fixed, and the cause was not where

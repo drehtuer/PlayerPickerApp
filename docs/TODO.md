@@ -33,6 +33,19 @@ authoritatively, in the design export itself.
       confirmed present by running the image. Nobody has rebuilt the workspace
       container and checked the extension actually resolves it - Gradle reads
       `JAVA_HOME` and never cared either way, which is why this went unnoticed.
+- [ ] **The `setup-android` fix in `docs.yml` and `release.yml` is unverified.**
+      All three workflows were moved off the broken v4.0.1 pin together, but
+      only `codeql.yml` runs on a pull request. The other two are tag-only, so
+      the identical one-line change in them is fixed by inspection. The next
+      `v*` tag is the first thing that will actually run them - check the
+      release job reaches the signing step rather than failing at SDK setup.
+      Background in [`STATUS.md`](STATUS.md).
+- [ ] **Nothing tells anyone that a tag-only workflow has gone stale.**
+      `docs.yml` and `release.yml` had been broken since 2026-09-19 and neither
+      had run since 2026-09-12, so there was no signal at all. A scheduled dry
+      run of the release path - build unsigned, skip publishing - would have
+      caught it, but it duplicates most of `release.yml` and needs deciding
+      before it is worth building.
 - [ ] **`connect-device.sh discover` scans a guessed range.** 30000-50000 covers
       what Android has picked so far, but the port is only documented as
       ephemeral. A phone that lands outside the range fails with "no open ports"
