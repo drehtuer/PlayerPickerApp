@@ -82,33 +82,6 @@ class ShotgunViewModelTest {
     }
 
     @Test
-    fun `a position off the edge of the surface is clamped, not stored as it came`() = runTest {
-        viewModel.recordDraw(
-            outcome(
-                mode = DrawMode.STARTER,
-                fingers = listOf(Finger(1L, -50f, 5_000f), Finger(2L, 500f, 100f)),
-                assignment = mapOf(1L to 1, 2L to 2),
-            ),
-            surfaceWidth = 1_000f,
-            surfaceHeight = 2_000f,
-        )
-
-        val first = history.recorded.single().points.first()
-        assertEquals(0f, first.x)
-        assertEquals(1f, first.y)
-    }
-
-    /** A surface with no size carries no position, so the centre is the honest answer. */
-    @Test
-    fun `a degenerate surface collapses to the centre rather than dividing by zero`() = runTest {
-        viewModel.recordDraw(starter(), surfaceWidth = 0f, surfaceHeight = 0f)
-
-        val point = history.recorded.single().points.first()
-        assertEquals(0.5f, point.x)
-        assertEquals(0.5f, point.y)
-    }
-
-    @Test
     fun `in starter mode only the winning finger won`() = runTest {
         viewModel.recordDraw(starter(), 1_000f, 2_000f)
 

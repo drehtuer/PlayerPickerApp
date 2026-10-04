@@ -115,7 +115,9 @@ frame, and repeated navigation all assert that a destination still exists.
 
 `DrawEngine` holds the rules with time passed in and randomness injected, so
 every one of them is testable without a screen. `DrawScreen` owns only what
-cannot be: pointers, drawing and haptics.
+cannot be: pointers, drawing and haptics. It builds the engine and hands it to
+`internal DrawSurface(engine, …)`, the composable that does the work, so a test
+can give the surface an engine that already has fingers down.
 
 ```mermaid
 stateDiagram-v2
@@ -182,7 +184,12 @@ an alpha, a scale, a label - and `DrawScreen` only turns that role into a
 colour. The rules it encodes are real decisions (who is dimmed, what is
 emphasised, which letter a team gets past Z) and used to be unreachable inside
 a composable. Label placement went the same way: `labelFitsAbove` and
-`labelOffsetY` are pure.
+`labelOffsetY` are pure. So did input. `routePointers` in `draw/SurfaceInput.kt`
+takes a pointer event as plain `Contact`s and decides what reaches the engine. A
+press that a child has consumed (the MODES link, the DETAILS button) lands no
+finger, and a release always lifts one. The pointer loop only maps Compose's
+types onto it. `edgeGlowAlpha` and `frameAlpha` in the same file give the
+countdown's visual strength.
 
 **The fairness field is rasterised off the main thread.** `HeatField` splats a
 kernel per retained winner, so the cost grows with history - and the screen is
@@ -230,7 +237,7 @@ The architecture exists mostly to make the risky parts testable.
 
 | Layer | Tested by | Why there |
 | --- | --- | --- |
-| `DrawEngine`, `HeatField`, `ringSpec`, `normalise`, settings | JVM unit tests | Pure - no device needed, and these are where silent wrongness lives |
+| `DrawEngine`, `HeatField`, `ringSpec`, `routePointers`, `normalise`, settings | JVM unit tests | Pure - no device needed, and these are where silent wrongness lives |
 | Screens, navigation, theme | Robolectric, also on the JVM | The framework without a device: that a screen composes, lays out and responds |
 | Multi-touch, Room queries, navigation, controls | Instrumented tests | Only real against a framework |
 | Feel: timing, haptic strength, legibility under a hand | A person, on a phone | No test can judge it |

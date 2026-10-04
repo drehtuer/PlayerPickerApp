@@ -387,11 +387,25 @@ only be skipped, fail, or boot an emulator, and an emulator agreeing with
 Robolectric would confirm two simulations at once rather than the thing itself.
 
 `DrawScreen` is the multi-touch surface, so its *driving* is covered only on the
-phone. Its decisions were moved into `ringSpec`, which is pure and unit-tested,
-and its pieces - the rings, the hint, the refusal bar, the reveal bar - are
-`internal` rather than private so each can be rendered directly with the state
-it would have had mid-draw. What is left uncovered on the JVM is the pointer
-loop and the countdown's frame loop, which nothing here can drive.
+phone. Its decisions were moved out of the composable and are unit-tested:
+`ringSpec` decides what a ring looks like, and `routePointers` in
+`draw/SurfaceInput.kt` decides which pointer changes land, move or lift a
+finger. `edgeGlowAlpha` and `frameAlpha` in the same file give the strength of
+the edge glow and the frame. `DrawScreen` builds the engine and hands it to
+`internal DrawSurface(engine, …)`, so `DrawSurfaceTest` can give the surface an
+engine that already has fingers down. The countdown, the staged reveal and the
+refusal timeout then run by themselves on the fake clock. The surface's pieces -
+the rings, the hint, the refusal bar, the reveal bar - are `internal` too, so
+each can be rendered with the state it would have had mid-draw. The only parts
+the JVM cannot reach are the pointer loop itself (turning Compose's events into
+`routePointers` calls) and the finger-tick haptic, which only a real press
+produces.
+
+**Robolectric does not draw unless asked.** In its default graphics mode the
+draw phase never runs, so a `Canvas` lambda shows as uncovered even in a test
+that renders it. A test that annotates itself `@GraphicsMode(NATIVE)` and calls
+`captureToImage()` gets real pixels: `EdgeGlow`, the mark and the fairness field
+are all checked this way, by the colour at chosen points.
 
 **Pointer injection does not work here.** `performTouchInput { down(...) }`
 drives the draw surface on the phone and lands *nothing* under Robolectric - no

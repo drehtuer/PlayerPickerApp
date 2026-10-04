@@ -28,6 +28,88 @@ documentation site is live. What is left is a fourth draw mode and polish.
 
 ---
 
+## 2026-10-04 — Tests pruned, and the draw surface reached from the JVM
+
+The unit suite was audited for duplicates and the coverage gaps were closed
+where the uncovered code was real behaviour. **209 → 224 tests. Coverage went
+from 93.1% to 97.1% of lines and from 76.3% to 83.4% of branches.**
+
+### What was removed
+
+Fourteen tests were removed. Coverage is the same without them, line for line
+and file for file. Most asserted the same path a second time: three settings
+fallback and clamp tests that had twins in the same file, two
+`ShotgunViewModelTest` clamps that only re-tested `normalise` (already pinned
+in `DrawRecordTest`), and three `NavHostRenderTest` cases that `NavBackTest`
+already walks. Two are worth naming:
+
+- "stepping the countdown three times moves it three half seconds" never called
+  app code. It stepped a lambda defined inside the test. The bug its comment
+  cites is pinned by `SettingsRepositoryTest`'s "steps in quick succession all
+  land".
+- "moving does not buzz" asserted that `onMove` returns no effect, but `onMove`
+  returns `Unit`, so the compiler already guarantees it.
+
+### The draw surface, which "nothing here can drive"
+
+`DrawScreen.kt` was the largest gap: 66 lines and 67 branches. The documented
+conclusion was that pointer injection lands nothing under Robolectric, and that
+still holds. Instead of injecting pointers, the logic was moved out to where
+tests can reach it:
+
+- `draw/SurfaceInput.kt` holds `routePointers`, which filters press, move and
+  release. It also holds the glow and frame arithmetic. The filtering is
+  unchanged. A release is the one case not filtered on consumed changes, and
+  that now has a comment saying so.
+- `DrawScreen` now builds the engine and hands it to
+  `internal DrawSurface(engine, …)`. `DrawSurfaceTest` passes in an engine that
+  already has fingers down and a 1ms countdown. From there the countdown,
+  staged reveal, instant reveal and refusal timeout all run on the fake clock,
+  with no pointers involved.
+
+Five lines are still uncovered: the pointer loop's mapping of event types, and
+the finger-tick haptic. **This touches the multi-touch path, and it has not been
+on the phone yet.** It is meant as a pure refactor, but CLAUDE.md requires a
+phone check for multi-touch changes before they count as done.
+
+### A second blind spot: Robolectric does not draw
+
+`EdgeGlow`, the mark in the wordmark and the fairness field all showed their
+`Canvas` bodies as uncovered, even in tests that rendered them. Robolectric's
+default graphics mode never runs the draw phase. Under `@GraphicsMode(NATIVE)`
+with `captureToImage()` it does. The new tests check real pixels: the claimed
+dot is accent and the other three are hollow rings, and a cluster of winners in
+the top left heats the top left but none of the mirrored corners, which catches
+a transposed or flipped field.
+
+### Other gaps closed
+
+- The system bar icons follow the app's theme setting, not the phone's, except
+  under SYSTEM.
+- Haptics with no vibrator, and with haptics off, where the vibrator is not
+  even looked up.
+- `navigateOnce`'s double-tap guard. The test was checked against the guard
+  disabled, and it fails then.
+- A last draw whose fingers have no team assignment.
+
+Not covered, on purpose: Kotlin-generated default-argument and null-check
+branches, a `ShotgunNavHost` fallback that the route type makes unreachable,
+and the pre-Android-12 vibrator path. That one is real behaviour, but it needs
+a second Robolectric SDK jar, so it is in [`TODO.md`](TODO.md).
+
+### How the work was done, and what got in the way
+
+Three agents worked in parallel in separate git worktrees: one removed
+duplicates, one worked on the draw surface, and one closed the remaining gaps.
+The results were merged locally and verified together. The host had no Android
+SDK (only `platform-tools`), so Gradle ran in the devcontainer image against
+the existing `playerpicker-*` SDK and Gradle volumes. Only about 3 GB of RAM was
+free, so builds were serialised behind a file lock rather than run in parallel.
+That made the agents wait for each other, but none ran out of memory. The three
+branches merged without conflicts.
+
+---
+
 ## 2026-09-28 — Code scanning was red for nine days, and the fix was already open
 
 Every workflow that sets up the Android SDK had been failing since

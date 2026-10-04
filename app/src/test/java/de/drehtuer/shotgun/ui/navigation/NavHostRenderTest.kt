@@ -50,12 +50,6 @@ class NavHostRenderTest {
     }
 
     @Test
-    fun `the graph starts on home`() {
-        host()
-        compose.onNodeWithText("One finger wins the draw").assertIsDisplayed()
-    }
-
-    @Test
     fun `settings is reachable from home and closes back to it`() {
         host()
         compose.onNodeWithText("SETTINGS").performClick()
@@ -63,20 +57,6 @@ class NavHostRenderTest {
 
         compose.onNodeWithText("DONE").performScrollTo().performClick()
         compose.onNodeWithText("One finger wins the draw").assertIsDisplayed()
-    }
-
-    @Test
-    fun `the result screen is reachable from home`() {
-        host()
-        compose.onNodeWithText("LAST RESULT & FAIRNESS HEATMAP →").performClick()
-        compose.onNodeWithText("FAIRNESS").assertIsDisplayed()
-    }
-
-    @Test
-    fun `a mode card opens the draw surface`() {
-        host()
-        compose.onNodeWithText("Every finger gets a number").performClick()
-        compose.onNodeWithText("EVERYONE, ONE FINGER DOWN.").assertIsDisplayed()
     }
 
     @Test

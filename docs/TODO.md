@@ -88,6 +88,16 @@ authoritatively, in the design export itself.
       on a real screen at small sizes.
 - [ ] **No accessibility tests.** The design leans on colour and scale, and the
       draw surface has no text alternative.
+- [ ] **The pre-Android-12 vibrator path is untested.** `Haptics.kt` has a
+      branch for API < 31, and `minSdk` is 26, so it is real. Covering it
+      needs a test with `@Config(sdk = [28])`, which makes Robolectric download
+      a second framework jar on every cold CI cache. Decide whether that cost is
+      worth one branch.
+- [ ] **Lint reports two warnings this repository did not cause:**
+      `AndroidGradlePluginVersion` (a newer AGP is out, and Dependabot should
+      raise it) and `DataExtractionRules` (`allowBackup` is deprecated from
+      Android 12; the manifest wants `dataExtractionRules`). Neither fails the
+      build, but lint is meant to pass clean.
 
 ## Settled, so they are not open
 

@@ -72,25 +72,6 @@ class SettingsTest {
         assertEquals(RevealTiming.INSTANT, s.revealTiming)
     }
 
-    /** The design gives the countdown stepper a floor of one second. */
-    /**
-     * Regression: the stepper used to write "current + 1" from state that came
-     * back asynchronously, so two quick taps both read the old value and the
-     * second was lost. Deltas have to compose.
-     */
-    @Test
-    fun `stepping the countdown three times moves it three half seconds`() {
-        var value = Settings().countdownMillis
-        fun step(steps: Int) {
-            value = (value + steps * Settings.COUNTDOWN_STEP_MILLIS)
-                .coerceAtLeast(Settings.MIN_COUNTDOWN_MILLIS)
-        }
-        step(+1); step(+1); step(+1)
-        assertEquals(5_000, value)
-        step(-1); step(-1)
-        assertEquals(4_000, value)
-    }
-
     @Test
     fun `countdown is clamped to the floor`() {
         assertEquals(500, preferencesOf(intPreferencesKey("countdown_millis") to 0).toSettings().countdownMillis)
@@ -98,27 +79,6 @@ class SettingsTest {
     }
 
     // ---- defensive reads: a value present but unusable ----------------------
-
-    /**
-     * The enum-backed settings are the ones that can be present and still
-     * meaningless - a name written by a newer build, or a corrupted string.
-     * Absent is already covered above; this is the *unparseable* branch.
-     */
-    @Test
-    fun `an unparseable theme name falls back to the default`() {
-        val s = preferencesOf(
-            stringPreferencesKey("theme_preference") to "MIDNIGHT",
-        ).toSettings()
-        assertEquals(ThemePreference.SYSTEM, s.themePreference)
-    }
-
-    @Test
-    fun `an unparseable reveal timing falls back to the default`() {
-        val s = preferencesOf(
-            stringPreferencesKey("reveal_timing") to "DRAMATIC",
-        ).toSettings()
-        assertEquals(RevealTiming.INSTANT, s.revealTiming)
-    }
 
     /** Absent falls back to the default; stored `false` must not look absent. */
     @Test
@@ -129,12 +89,6 @@ class SettingsTest {
         ).toSettings()
         assertEquals(false, s.haptics)
         assertEquals(false, s.dim)
-    }
-
-    @Test
-    fun `a countdown below the floor is raised to it`() {
-        val s = preferencesOf(intPreferencesKey("countdown_millis") to 100).toSettings()
-        assertEquals(Settings.MIN_COUNTDOWN_MILLIS, s.countdownMillis)
     }
 
     // ---- stepping, including the migration ---------------------------------

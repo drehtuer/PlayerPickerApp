@@ -70,13 +70,6 @@ class RoomDrawHistoryTest {
     }
 
     @Test
-    fun `nothing drawn yet reads as no latest draw and no winners`() = runTest {
-        assertNull(history.latest().first())
-        assertEquals(emptyList<DrawPoint>(), history.winners().first())
-        assertEquals(0, history.count().first())
-    }
-
-    @Test
     fun `only the winning finger is a winner`() = runTest {
         history.record(draw())
 

@@ -72,13 +72,6 @@ class SettingsRepositoryTest {
     }
 
     @Test
-    fun `the countdown cannot be written below its floor`() = runTest {
-        repository.setCountdownMillis(0)
-
-        assertEquals(Settings.MIN_COUNTDOWN_MILLIS, repository.settings.first().countdownMillis)
-    }
-
-    @Test
     fun `stepping moves the countdown by half seconds`() = runTest {
         repository.setCountdownMillis(2_000)
         repository.stepCountdown(1)
