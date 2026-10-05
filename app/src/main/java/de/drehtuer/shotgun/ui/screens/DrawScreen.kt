@@ -51,7 +51,12 @@ import de.drehtuer.shotgun.draw.DrawEffect
 import de.drehtuer.shotgun.draw.DrawEngine
 import de.drehtuer.shotgun.draw.DrawOutcome
 import de.drehtuer.shotgun.draw.RingRole
+import de.drehtuer.shotgun.draw.Contact
+import de.drehtuer.shotgun.draw.PointerAction
+import de.drehtuer.shotgun.draw.edgeGlowAlpha
+import de.drehtuer.shotgun.draw.frameAlpha
 import de.drehtuer.shotgun.draw.labelFitsAbove
+import de.drehtuer.shotgun.draw.routePointers
 import de.drehtuer.shotgun.draw.labelOffsetY
 import de.drehtuer.shotgun.draw.ringSpec
 import de.drehtuer.shotgun.draw.DrawPhase
@@ -98,8 +103,6 @@ fun DrawScreen(
     // for Android's idle timer to see.
     KeepScreenOn()
 
-
-    val context = LocalContext.current
     val engine = remember(mode, teamCount, settings.countdownMillis, settings.revealTiming) {
         DrawEngine(
             mode = mode,
@@ -108,6 +111,27 @@ fun DrawScreen(
             instantReveal = settings.revealTiming == RevealTiming.INSTANT,
         )
     }
+    DrawSurface(engine, settings.haptics, onBack, onOpenResult, onDrawComplete, modifier)
+}
+
+/**
+ * The surface itself, around an [engine] it is handed rather than one it
+ * builds. That is so a test can hand it an engine with fingers already down:
+ * pointers cannot be injected on the JVM, but the countdown, the staged reveal
+ * and the refusal timeout run on their own once the engine is in that state.
+ */
+@Composable
+internal fun DrawSurface(
+    engine: DrawEngine,
+    haptics: Boolean,
+    onBack: () -> Unit,
+    onOpenResult: () -> Unit,
+    onDrawComplete: (DrawOutcome, Float, Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val mode = engine.mode
+    val teamCount = engine.teamCount
 
     // The engine is a plain object, so a counter is what tells Compose its
     // state moved. This one covers *positions* only.
@@ -131,10 +155,10 @@ fun DrawScreen(
 
     fun handle(effect: DrawEffect?) {
         when (effect) {
-            is DrawEffect.FingerTick -> Haptics.tick(context, settings.haptics)
+            is DrawEffect.FingerTick -> Haptics.tick(context, haptics)
             is DrawEffect.Refused -> refusal = effect.message
             is DrawEffect.Drawn -> {
-                Haptics.result(context, settings.haptics, effect.outcome.mode)
+                Haptics.result(context, haptics, effect.outcome.mode)
                 onDrawComplete(effect.outcome, surface.first, surface.second)
             }
             null -> Unit
@@ -178,12 +202,8 @@ fun DrawScreen(
     val fingers = engine.fingers
     val outcome = engine.outcome
 
-    val glow = when (phase) {
-        DrawPhase.COUNTING -> 0.1f + progress * 0.4f
-        DrawPhase.REVEALING, DrawPhase.REVEALED -> 0.08f
-        DrawPhase.IDLE -> 0f
-    }
-    val frame = if (phase == DrawPhase.COUNTING) 0.2f + progress * 0.8f else 0f
+    val glow = edgeGlowAlpha(phase, progress)
+    val frame = frameAlpha(phase, progress)
     // Chrome hides while hands are on the glass, and comes back to let you
     // leave once they are off - including with a result still showing.
     val chrome by animateFloatAsState(if (fingers.isEmpty()) 1f else 0f, label = "chrome")
@@ -198,36 +218,26 @@ fun DrawScreen(
                     while (true) {
                         val event = awaitPointerEvent()
                         val now = System.currentTimeMillis()
-                        when (event.type) {
-                            // A change consumed by a child - the MODES link,
-                            // the DETAILS button - is that child's business.
-                            // Without this the press also lands a finger, the
-                            // chrome hides itself mid-tap, and the click never
-                            // completes.
-                            PointerEventType.Press ->
-                                event.changes.filter { it.pressed && !it.isConsumed }.forEach { change ->
-                                    handle(
-                                        engine.onDown(
-                                            change.id.value,
-                                            change.position.x,
-                                            change.position.y,
-                                            now,
-                                        )
-                                    )
-                                }
-
-                            PointerEventType.Move ->
-                                event.changes.filter { !it.isConsumed }.forEach { change ->
-                                    engine.onMove(change.id.value, change.position.x, change.position.y)
-                                    revision++
-                                }
-
-                            PointerEventType.Release ->
-                                event.changes.filter { !it.pressed }.forEach { change ->
-                                    engine.onUp(change.id.value, now)
-                                    sync()
-                                }
+                        // Which changes count, and what each does to the
+                        // engine, is decided in `routePointers` - pure, and
+                        // unit-tested. This only maps Compose's types onto it.
+                        val action = when (event.type) {
+                            PointerEventType.Press -> PointerAction.PRESS
+                            PointerEventType.Move -> PointerAction.MOVE
+                            PointerEventType.Release -> PointerAction.RELEASE
+                            else -> continue
                         }
+                        routePointers(
+                            action = action,
+                            contacts = event.changes.map {
+                                Contact(it.id.value, it.position.x, it.position.y, it.pressed, it.isConsumed)
+                            },
+                            engine = engine,
+                            now = now,
+                            onLanded = { handle(it) },
+                            onMoved = { revision++ },
+                            onLifted = { sync() },
+                        )
                     }
                 }
             },

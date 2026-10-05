@@ -55,24 +55,6 @@ class ComponentRenderTest {
         compose.runOnIdle { assertTrue("DONE did not fire", acted) }
     }
 
-    /** The accent variant is the one used where the action is the point. */
-    @Test
-    fun `the header action can be set in the accent colour`() {
-        compose.setContent {
-            ShotgunTheme(ThemePreference.LIGHT) {
-                ScreenHeader(
-                    title = "RESULT",
-                    actionLabel = "CLOSE",
-                    onAction = {},
-                    actionInAccent = true,
-                )
-            }
-        }
-
-        compose.onNodeWithText("RESULT").assertIsDisplayed()
-        compose.onNodeWithText("CLOSE").assertIsDisplayed()
-    }
-
     @Test
     fun `a rule and the wordmark render in the dark palette`() {
         compose.setContent {

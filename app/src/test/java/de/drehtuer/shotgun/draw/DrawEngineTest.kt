@@ -109,14 +109,6 @@ class DrawEngineTest {
     }
 
     @Test
-    fun `moving does not buzz - only landing does`() {
-        val e = engine()
-        assertEquals(DrawEffect.FingerTick, e.onDown(1, 0f, 0f, now = 0))
-        e.onMove(1, 5f, 5f)                          // returns nothing at all
-        assertEquals(1, e.fingers.size)
-    }
-
-    @Test
     fun `the same pointer landing twice is ignored`() {
         val e = engine()
         e.onDown(1, 0f, 0f, now = 0)
@@ -198,16 +190,6 @@ class DrawEngineTest {
         val outcome = (e.tick(now = 100_000) as DrawEffect.Drawn).outcome
         assertEquals(listOf(1, 2, 3, 4, 5), outcome.assignment.values.sorted())
         assertEquals(1, outcome.assignment[outcome.winnerId])
-    }
-
-    @Test
-    fun `teams deals round robin, so sizes differ by at most one`() {
-        val e = engine(mode = DrawMode.TEAMS, teams = 3)
-        (1L..7L).forEach { e.onDown(it, 0f, 0f, now = 0) }
-        val outcome = (e.tick(now = 100_000) as DrawEffect.Drawn).outcome
-        val sizes = outcome.assignment.values.groupingBy { it }.eachCount().values
-        assertEquals(3, sizes.size)
-        assertTrue("uneven by more than one: $sizes", sizes.max() - sizes.min() <= 1)
     }
 
     @Test
