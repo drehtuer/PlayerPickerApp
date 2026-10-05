@@ -44,7 +44,7 @@ published build matches what `main` has been running since 0.1.3:
 - **The intermittent test hang recorded at 0.1.3 is fixed.** Each test now gets
   its own settings store.
 - **CI is green again** after `setup-android` asked for the SDK package that
-  Google removed.
+  Google removed. `setup-gradle` also moved to 6.4.0.
 - **Unit tests: 224, covering 97.1% of lines and 83.4% of branches.**
 
 ---
