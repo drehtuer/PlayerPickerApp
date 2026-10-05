@@ -10,7 +10,7 @@ See [`TODO.md`](TODO.md) for what is still open.
 
 **Built, verified on the phone, and released.** All four screens work, the draw
 history and settings persist, and seven rounds of device feedback settled the
-timing, the reveal, the dim level and the haptics. `v0.1.3` is published and the
+timing, the reveal, the dim level and the haptics. `v0.1.4` is published and the
 documentation site is live. What is left is a fourth draw mode and polish.
 
 | Area | State |
@@ -22,9 +22,30 @@ documentation site is live. What is left is a fourth draw mode and polish.
 | Identity: name, logo, launcher icon | done |
 | Devcontainer: SDK, emulator, adb over Wi-Fi | done |
 | CI: build, unit tests, lint, coverage to SonarQube | done |
-| Release: signed artifacts on a `v*` tag | `v0.1.3` published |
+| Release: signed artifacts on a `v*` tag | `v0.1.4` published |
 | Documentation site | live at [drehtuer.github.io/ShotgunApp](https://drehtuer.github.io/ShotgunApp/) |
 | COLOURS draw mode | not started - blocked on one decision |
+
+---
+
+## 2026-10-05 — Release 0.1.4
+
+`appVersion` 0.1.3 → 0.1.4, so `versionCode` derives to **104**.
+
+Nothing new for the user to see. This is a maintenance release, so the
+published build matches what `main` has been running since 0.1.3:
+
+- **Dependencies brought up to date.** Kotlin 2.4.20, Compose BOM 2026.09.00,
+  Navigation 2.10.2, Room 2.8.5, core-ktx 1.19.1, KSP 2.3.12 and Gradle 9.8.0.
+- **The draw surface's input handling moved into `draw/SurfaceInput.kt`.** It
+  was meant as a pure refactor, and on the Pixel 10a every finger still gets a
+  ring, the rings follow moving fingers, the result outlives the hand, and
+  tapping ← MODES lands no ring.
+- **The intermittent test hang recorded at 0.1.3 is fixed.** Each test now gets
+  its own settings store.
+- **CI is green again** after `setup-android` asked for the SDK package that
+  Google removed.
+- **Unit tests: 224, covering 97.1% of lines and 83.4% of branches.**
 
 ---
 
