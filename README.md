@@ -30,7 +30,7 @@ was built against.
 
 **Built, verified on the phone, and released.** Seven rounds of device feedback
 settled the countdown default, the reveal timing, the dim level and the haptics.
-`v0.1.3` is published and the documentation site is live at
+`v0.1.4` is published and the documentation site is live at
 [drehtuer.github.io/ShotgunApp](https://drehtuer.github.io/ShotgunApp/). What
 remains is a fourth draw mode - COLOURS, blocked on one decision - and the
 polish listed in [`docs/TODO.md`](docs/TODO.md).

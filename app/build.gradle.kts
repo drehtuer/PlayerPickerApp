@@ -31,7 +31,7 @@ fun signingValue(property: String, env: String): String? =
  *
  * The release workflow refuses to run if the `v*` tag does not match this.
  */
-val appVersion = "0.1.3"
+val appVersion = "0.1.4"
 
 /**
  * Derived, never written by hand. `versionCode` is what Android compares to
